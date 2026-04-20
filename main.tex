@@ -27,7 +27,7 @@ Projekt polega na implementacji kaskady zbiorników do mieszania lakierów samoc
 
 \section{Realny proces produkcji}
 Chcąc zachować spójność z prawdziwym procesem produkcyjnym, kaskada została zaprojektowana tak, aby w jak najwyższym stopniu odzwierciedlać rzeczywiste proporcje. Baza i utwardzacz są napełniane, podgrzewane i utrzymywane w gotowości zgodnie z wymaganiami technologicznymi. Mieszanie odbywa się przez określoną liczbę cykli, a temperatura gotowej mieszaniny jest kontrolowana, aby zapewnić odpowiednią jakość lakieru. System jest również wyposażony w zabezpieczenia, które chronią przed przelaniem, przegrzaniem oraz pracą elementów wykonawczych bez cieczy w zbiornikach.\\
-Poniższe zdjęcia z kart katalogowych producentów lakierów ilustrują proporcje miaszania:
+Poniższe zdjęcia z kart katalogowych producentów lakierów ilustrują proporcje mieszania:
 \begin{figure}[H]
     \centering
     \includegraphics[width=14cm]{figures/ss_zbiorniki/teoria_akryl.jpg}
@@ -89,14 +89,14 @@ Sterować kaskadą można za pomocą przełączników i przycisków symulatora, 
     \item Zbiornik nr 1 - baza
     \begin{enumerate}
         \item $h < x1$ Napełniaj Z1 do poziomu x2
-        \item $x1 < h \ge x2$ Grzej G1 do temperatury T1, a następnie przez dokładnie 160 cykli\\
+        \item $h \ge x2$ Grzej G1 do temperatury T1, a następnie przez dokładnie 160 cykli\\
         Oczekuj na opróżnienie zbiornika do poziomu x1, podtrzymując temperaturę T1
     \end{enumerate}
     \item Zbiornik nr 2 - utwardzacz
     \begin{enumerate}
         \item $h < x3$ Napełniaj Z2 do poziomu x3
-        \item $x3 <h \ge x4$ Dalej napełniaj Z2 do poziomu x4, jednocześnie grzejąc G2\\
-        Grzej G2 do temperatury T2, a następnie przez dokładnie 160 cykli\\
+        \item $x3 \leq h < x4$ Dalej napełniaj Z2 do poziomu x4, jednocześnie grzejąc G2
+        \item $h \ge x4$ Grzej G2 do temperatury T2, a następnie przez dokładnie 160 cykli\\
         Oczekuj na opróżnienie zbiornika do poziomu x3, podtrzymując temperaturę T2
     \end{enumerate}
     \item Zbiornik nr 3 - mieszanina
@@ -118,8 +118,8 @@ Sterować kaskadą można za pomocą przełączników i przycisków symulatora, 
         \end{itemize}
          \item Tryb manualny
          \begin{itemize}
-            \item W każdym momencie poprzez K8, użytkownik może przejść do trybu ręczego
-            \item W momencie przejścia wszystkie do trybu manualnego, wszystkie wyjścia zbiorników zostają wyłączone, a poprzez K1, K1 i K3 użytkownik może ręcznie sterować napełnianiem, grzaniem i mieszaniem
+            \item W każdym momencie poprzez K8, użytkownik może przejść do trybu ręcznego
+            \item W momencie przejścia do trybu manualnego, wszystkie wyjścia zbiorników zostają wyłączone, a poprzez K1, K2 i K3 użytkownik może ręcznie sterować napełnianiem, grzaniem i mieszaniem
             \item K1, K2 - wybór konkretnego wyjścia
             \item K3 - włączanie/wyłączanie wybranego wyjścia
             \item Cały czas obowiązują sprzętowe zabezpieczenia przed przelaniem, przegrzaniem oraz pracą grzałki bez cieczy w zbiorniku
@@ -244,7 +244,7 @@ void prolog(void) {
     pK1=aK1; pK2=aK2; pK3=aK3; pK4=aK4;
     pK5=aK5; pK6=aK6; pK7=aK7; pK8=aK8;
     
-    //Inicjalizacja zmienncyh
+    //Inicjalizacja zmiennych
     licz = 0;                         
     tim1 = 0; tim2 = 0; tim3 = 0;     
     
@@ -371,7 +371,7 @@ void prolog(void) {
 
        // Wyświetlanie informacji na LCD
         if (stan3 == 8 || stan3 == 9) {
-            sprintf(bufor_pomocniczy, "AUTO: ZEROWANIE");  // Trwa opróżnianie po powrocie z pracy maualnej
+            sprintf(bufor_pomocniczy, "AUTO: ZEROWANIE");  // Trwa opróżnianie po powrocie z pracy manualnej
         } else if (stan3 == 0 || stan3 == 2 || stan3 == 4) { 
             sprintf(bufor_pomocniczy, "AUTO: UZUPELNIANIE"); // Kaskada czeka, aż górne zbiorniki przygotują bazę/utwardzacz
         } else if (tryb == 1) {
@@ -571,7 +571,7 @@ Poniżej przedstawiono przykładowe zrzuty ekranu obrazujące działanie program
 \begin{figure}[H]
     \centering
     \includegraphics[width=14cm]{figures/ss_zbiorniki/a_akryl_uzupelnianie_brak_skladnikow.jpg}
-    \caption{Tryb automatyczny - produkcja lakieru akrylowego, pauza z powodu uzupełniania braków w zbiorniu nr 1}
+    \caption{Tryb automatyczny - produkcja lakieru akrylowego, pauza z powodu uzupełniania braków w zbiorniku nr 1}
     \label{Fig:a_akryl_uzupelnianie_brak_skladnikow}
 \end{figure}
 
@@ -594,12 +594,12 @@ Podobnie jak w przypadku lakieru akrylowego, wygląda tworzenie lakieru poliuret
 \begin{figure}[H]
     \centering
     \includegraphics[width=14cm]{figures/ss_zbiorniki/m.jpg}
-        \caption{Tryb manualny - użytkownik poprzez panel samodnielnie decyduje o stanach wyjść, jedynym ograniczeniem są zabezpieczenia}
+        \caption{Tryb manualny - użytkownik poprzez panel samodzielnie decyduje o stanach wyjść, jedynym ograniczeniem są zabezpieczenia}
         \label{Fig:m_manual}
 \end{figure}
 
 \section*{Podsumowanie}
-Podczas realizacji projektu udało się stworzyć kompletny system kaskady zbiorników do mieszania lakierów samochodowych, który spełnia wszystkie założenia funkcjonalne. System działa zarówno w trybie automatycznym, jak i manualnym, a zastosowane zabezpieczenia skutecznie chronią przed niepożądanymi stanami. Projekt pozwolił na praktyczne zastosowanie wiedzy z zakresu systemów wbudowanych. Dodatkowo, implementacja została przeprowadzona z dbałością o czytelność kodu, zasady projektowania automatów Moore'a oraz rygorystyczną zgodność z wymaganiami projektowymi. W przyszłości można rozważyć rozszerzenie funkcjonalności o dodatkowe tryby pracy, bardziej zaawansowane interfejsy użytkownika lub integrację z systemami zewnętrznymi. Kluczowym elementem projektu było wprowadzenie realnej logiki przemysłowej do symulacji, co pozwoliło na lepsze zrozumienie procesów automatyki i sterowania.
+Podczas realizacji projektu udało się stworzyć kompletny system kaskady zbiorników do mieszania lakierów samochodowych, który spełnia wszystkie założenia funkcjonalne. System działa zarówno w trybie automatycznym, jak i manualnym, a zastosowane zabezpieczenia skutecznie chronią przed niepożądanymi stanami. Projekt pozwolił na praktyczne zastosowanie wiedzy z zakresu systemów wbudowanych. Dodatkowo, implementacja została przeprowadzona z dbałością o czytelność kodu, zasady projektowania automatów Moore'a oraz rygorystyczną zgodność z wymaganiami projektowymi. W przyszłości można rozważyć rozszerzenie funkcjonalności o dodatkowe tryby pracy, bardziej zaawansowane interfejsy użytkownika lub integrację z systemami zewnętrznymi. Kluczowym elementem projektu było wprowadzenie realnej logiki przemysłowej do symulacji, co pozwoliło na lepsze zrozumienie procesów.
 
 \begin{thebibliography}{9}
     \bibitem{wyklady} Świder Z.: \textit{Materiały wykładowe z przedmiotu "Systemy wbudowane"}. Politechnika Rzeszowska, semestr letni 2025/2026.
