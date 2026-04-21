@@ -26,7 +26,7 @@
 Projekt polega na implementacji kaskady zbiorników do mieszania lakierów samochodowych. System umożliwia tworzenie dwóch rodzajów lakierów: akrylowego i poliuretanowego, poprzez mieszanie dwóch składników: bazy i utwardzacza. Proporcje składników są zgodne z realnym procesem produkcyjnym - 2:1 dla lakieru akrylowego i 4:1 dla poliuretanowego. Cały proces tworzenia lakieru został zwizualizowany poprzez użycie symulatora.
 
 \section{Realny proces produkcji}
-Chcąc zachować spójność z prawdziwym procesem produkcyjnym, kaskada została zaprojektowana tak, aby w jak najwyższym stopniu odzwierciedlać rzeczywiste proporcje. Baza i utwardzacz są napełniane, podgrzewane i utrzymywane w gotowości zgodnie z wymaganiami technologicznymi. Mieszanie odbywa się przez określoną liczbę cykli, a temperatura gotowej mieszaniny jest kontrolowana, aby zapewnić odpowiednią jakość lakieru. System jest również wyposażony w zabezpieczenia, które chronią przed przelaniem, przegrzaniem oraz pracą elementów wykonawczych bez cieczy w zbiornikach.\\
+Chcąc zachować spójność z prawdziwym procesem produkcyjnym, kaskada została zaprojektowana tak, aby w jak najwyższym stopniu odzwierciedlać rzeczywiste proporcje. Baza i utwardzacz są napełniane, podgrzewane i utrzymywane w gotowości zgodnie z wymaganiami technologicznymi. Mieszanie odbywa się przez określoną liczbę cykli, a temperatura gotowej mieszaniny jest kontrolowana, aby zapewnić odpowiednią jakość lakieru. System jest również wyposażony w zabezpieczenia, które chronią przed przelaniem, przegrzaniem oraz pracą elementów wykonawczych bez cieczy w zbiornikach. Oczywiście ze względu na sposób realizacji projektu, pewne aspekty procesu produkcji lakierów zostały uproszczone np. jeden zbiornik z bazą niezależnie od typu lakieru.\\
 Poniższe zdjęcia z kart katalogowych producentów lakierów ilustrują proporcje mieszania:
 \begin{figure}[H]
     \centering
@@ -545,7 +545,306 @@ void prolog(void) {
         }
 \end{lstlisting}
 
+\begin{lstlisting}[language=C, caption={Pełny kod źródłowy projektu}, label={Kod:calosc}]
+   /*************************************************************************/
+/* Program testowy dla obiektu A - AUTO + MANUAL Z ZABEZPIECZENIAMI      */
+/* Wersja ulepszona (Industrial Standard / Moore Machine)                */
+/*************************************************************************/
+#include "spsym.h"
+#include <stdio.h>
+
+#define x1 X1
+#define x2 X2
+#define x3 X3
+#define x4 X4
+#define x5 X5
+#define x6 X6
+#define x7 X7
+
+#define Z1 Y1
+#define Z2 Y2
+#define Z3 Y3
+#define Z4 Y4
+#define Z5 Y5
+#define M  Y6
+#define G1 Y7
+#define G2 Y8
+#define G3 Y9
+#define G4 Y10
+
+// --- Zmienne globalne ---
+int licz;
+int tim1, tim2, tim3;
+
+char stan1, stan2, stan3; 
+int tryb, nastepny_tryb;
+
+float temp1, temp2, temp3;
+float T1_set, T2_set, T3_set;
+
+#define T1 (temp1 >= T1_set)
+#define T2 (temp2 >= T2_set)
+#define T3 (temp3 >= T3_set)
+
+int timer_pauzy;
+int man_wybor;              
+char man_out[10]; 
+char KL, prev_KL;
+char pauza_tim3;
+
+void prolog(void) {
+    int i;
+    L1=L2=L3=L4=L5=L6=L7=L8=0;
+    pK1=aK1; pK2=aK2; pK3=aK3; pK4=aK4;
+    pK5=aK5; pK6=aK6; pK7=aK7; pK8=aK8;
+    
+    licz = 0;
+    tim1 = 0; tim2 = 0; tim3 = 0;
+    stan1 = 0; stan2 = 0; stan3 = 8; 
+    tryb = 0; nastepny_tryb = 1;
+    T1_set = 30.0; T2_set = 30.0; T3_set = 45.0;
+    
+    timer_pauzy = 0;
+    man_wybor = 0;
+    KL = 0; prev_KL = 0;
+    pauza_tim3 = 0;
+    for(i = 0; i < 10; i++) man_out[i] = 0;
+}
+
+void oblicz(void) {
+    char* nazwy[] = {"Z1", "Z2", "Z3", "Z4", "Z5", "G1", "G2", "G3", "G4", "M"};
+    int stany[10];
+    char bufor_pomocniczy[30];
+    int i;
+
+    temp1 = AI[0] / 10.0;
+    temp2 = AI[1] / 10.0;
+    temp3 = AI[2] / 10.0;
+
+    KL = aK8; 
+    L8 = aK8;
+
+    if (KL && !prev_KL) {
+        for(i = 0; i < 10; i++) man_out[i] = 0;
+        stan1 = 0; stan2 = 0; stan3 = 8; tryb = 0; 
+    }
+
+    if (KL) {
+        // TRYB MANUALNY
+        
+        if (aK1 != pK1) { man_wybor--; if (man_wybor < 0) man_wybor = 9; }
+        if (aK2 != pK2) { man_wybor++; if (man_wybor > 9) man_wybor = 0; }
+        if (aK3 != pK3) { man_out[man_wybor] = !man_out[man_wybor]; }
+
+        Z1 = (man_out[0] && !x2) ? 1 : 0;
+        Z2 = (man_out[1] && !x7) ? 1 : 0;
+        Z3 = (man_out[2] && !x4) ? 1 : 0;
+        Z4 = (man_out[3] && !x7) ? 1 : 0;
+        Z5 = man_out[4];
+        
+        G1 = (man_out[5] && x1 && temp1 < T1_set + 15.0) ? 1 : 0;
+        G2 = (man_out[6] && x3 && temp2 < T2_set + 15.0) ? 1 : 0;
+        G3 = (man_out[7] && x5 && temp3 < T3_set + 15.0) ? 1 : 0;
+        G4 = (man_out[8] && x5 && temp3 < T3_set + 15.0) ? 1 : 0;
+        M  = man_out[9];
+
+        stany[0]=Z1; stany[1]=Z2; stany[2]=Z3; stany[3]=Z4; stany[4]=Z5;
+        stany[5]=G1; stany[6]=G2; stany[7]=G3; stany[8]=G4; stany[9]=M;
+
+        //  WYSWIETLACZ W TRYBIE MANUAL 
+        sprintf(bufor_pomocniczy, "MANUAL: %s", nazwy[man_wybor]);
+        sprintf(buf, "%-20s", bufor_pomocniczy);
+        LCD_xy(1,1); LCD_puts(buf);
+
+        sprintf(bufor_pomocniczy, "Stan: %s", stany[man_wybor] ? "ON" : "OFF"); 
+        sprintf(buf, "%-20s", bufor_pomocniczy);
+        LCD_xy(1,2); LCD_puts(buf);
+        
+        L1=aK1; L2=aK2; L3=aK3; L4=0; L5=0; L6=0; L7=0;
+
+    } else {
+        // TRYB AUTOMATYCZNY 
+        L1=0; L2=0; L3=0; L4=0; L5=0; L6=0; L7=0;
+        pauza_tim3 = 0;
+
+        if (stan3 == 2 || stan3 == 4) { timer_pauzy++; if (timer_pauzy > 600) timer_pauzy = 0; } 
+        else { timer_pauzy = 0; }
+
+        // --- ZBIORNIK 1 ---
+        switch(stan1) {
+            case 0: 
+                Z1=0; G1=0; 
+                if(!x1 && stan3 == 0) stan1 = 1; 
+                break;
+            case 1: 
+                Z1=1; G1=0; 
+                if(x2) stan1 = 2; 
+                break;
+            case 2: 
+                Z1=0; G1=1; 
+                if(!x1) stan1 = 1; 
+                else if(x1 && T1) { tim1 = 160; stan1 = 3; } 
+                break;
+            case 3: 
+                Z1=0; G1=1; 
+                if(!tim1 && x1) stan1 = 4; 
+                else if(!tim1 && !x1) stan1 = 1; 
+                break;
+            case 4: 
+                Z1=0; G1=0; 
+                if(!x1 || (stan3 == 7 && !x2)) stan1 = 1; 
+                else if(x1 && !T1) stan1 = 2; 
+                break;
+        }
+        
+        // --- ZBIORNIK 2 ---
+        switch (stan2) {
+            case 0: 
+                Z3=0; G2=0; 
+                if(!x3 && stan3 == 0) stan2 = 1; 
+                break;
+            case 1: 
+                Z3=1; G2=0; 
+                if (x3) stan2=2; 
+                break;
+            case 2: 
+                Z3=1; G2=1; 
+                if (!x3) stan2=1; 
+                else if (x3 && x4 && !T2) stan2=3; 
+                else if (x3 && x4 && T2) stan2=5; 
+                break;
+            case 3: 
+                Z3=0; G2=1; 
+                if (!x3) stan2=1; 
+                else if (x3 && T2) { tim2=160; stan2=4; } 
+                break;
+            case 4: 
+                Z3=0; G2=1; 
+                if (!tim2 && x3) stan2=5; 
+                else if (!tim2 && !x3) stan2=1; 
+                break;
+            case 5: 
+                Z3=0; G2=0; 
+                if (!x3 || (stan3 == 7 && !x4)) stan2 = 1; 
+                else if (x3 && !T2) stan2=3; 
+                break;
+        }
+        
+        // --- ZBIORNIK 3 ---
+        switch (stan3) {
+            case 0: 
+                Z2=0; Z4=0; Z5=0; M=0; G3=0; G4=0; 
+                if (T1 && T2 && x2 && x4) { 
+                    tryb = nastepny_tryb; 
+                    tim3 = 400; 
+                    nastepny_tryb = (tryb == 1) ? 2 : 1; 
+                    stan3 = 1; 
+                } 
+                break;
+            case 1: 
+                Z2=1; Z4=0; Z5=0; M=0; G3=0; G4=0; 
+                if (x7) { tim3 = 300; stan3 = 5; } 
+                else if (!x7 && (!x1 || !T1)) stan3 = 2; 
+                else if (!x7 && x1 && T1 && !tim3) { 
+                    tim3 = (tryb == 1) ? 200 : 100; // Akryl 2s, Poliuretan 1s
+                    stan3 = 3; 
+                } 
+                break;
+            case 2: 
+                Z2=0; Z4=0; Z5=0; M=0; G3=(timer_pauzy <= 300) ? 1 : 0; G4=0; 
+                pauza_tim3 = 1; // ZATRZYMANIE TIMERA
+                if (x1 && T1) stan3 = 1; 
+                break;
+            case 3: 
+                Z2=0; Z4=1; Z5=0; M=0; G3=0; G4=0; 
+                if (x7) { tim3 = 300; stan3 = 5; } 
+                else if (!x7 && (!x3 || !T2)) stan3 = 4; 
+                else if (!x7 && x3 && T2 && !tim3) { 
+                    tim3 = 400; 
+                    stan3 = 1; 
+                } 
+                break;
+            case 4: 
+                Z2=0; Z4=0; Z5=0; M=0; G3=(timer_pauzy <= 300) ? 1 : 0; G4=0; 
+                pauza_tim3 = 1; // ZATRZYMANIE TIMERA
+                if (x3 && T2) stan3 = 3; 
+                break;
+            case 5: 
+                Z2=0; Z4=0; Z5=0; M=1; G3=0; G4=0; 
+                if (!tim3) stan3 = 6; 
+                break;
+            case 6: 
+                Z2=0; Z4=0; Z5=0; M=0; G3=1; G4=1; 
+                if (T3) stan3 = 7; 
+                break;
+            case 7: 
+                Z2=0; Z4=0; Z5=1; M=0; G3=0; G4=0; 
+                if (!x5) stan3 = 0; 
+                break;
+            case 8: 
+                Z2=1; Z4=1; Z5=1; M=0; G3=0; G4=0; 
+                if (!x1 && !x3 && !x5) stan3 = 0; 
+                else if (x7) stan3 = 9; 
+                break; 
+            case 9: 
+                Z2=0; Z4=0; Z5=1; M=0; G3=0; G4=0; 
+                if (!x7) stan3 = 8; 
+                break; 
+        }
+
+        //WYSWIETLACZ W TRYBIE AUTO 
+        if (stan3 == 8 || stan3 == 9) {
+            sprintf(bufor_pomocniczy, "AUTO: ZEROWANIE"); 
+        } else if (stan3 == 0 || stan3 == 2 || stan3 == 4) { 
+            sprintf(bufor_pomocniczy, "AUTO: UZUPELNIANIE"); 
+        } else if (tryb == 1) {
+            sprintf(bufor_pomocniczy, "AUTO: AKRYL"); 
+        } else if (tryb == 2) {
+            sprintf(bufor_pomocniczy, "AUTO: POLIURETAN"); 
+        } else {
+            sprintf(bufor_pomocniczy, "AUTO: CZEKA"); 
+        }
+        sprintf(buf, "%-20s", bufor_pomocniczy);
+        LCD_xy(1,1); LCD_puts(buf);
+        
+        sprintf(bufor_pomocniczy, "%s %s %s 1:%d 2:%d 3:%d", 
+                T1 ? "T1" : "  ", 
+                T2 ? "T2" : "  ", 
+                T3 ? "T3" : "  ",
+                (int)stan1, (int)stan2, (int)stan3);
+        sprintf(buf, "%-20s", bufor_pomocniczy);
+        LCD_xy(1,2); LCD_puts(buf);
+    }
+
+    prev_KL = KL;
+
+    if(tim1) --tim1; 
+    if(tim2) --tim2;
+    if(tim3 && !pauza_tim3) --tim3;
+
+    pK1 = aK1; pK2 = aK2; pK3 = aK3; pK4 = aK4;
+    pK5 = aK5; pK6 = aK6; pK7 = aK7; pK8 = aK8;
+}
+
+void przerwanie(void) { licz++; }
+void komunikacja(void) {}
+
+#ifdef Symulator_PC
+void wykres(void) {
+    aTab[0] = (int)(AI[0]/10.0); aTab[1] = (int)(AI[1]/10.0); aTab[2] = (int)(AI[2]/10.0);
+    aTab[3] = (int)(AI[3]/10.0); aTab[4] = (int)(AI[4]/10.0); aTab[5] = (int)(AI[5]/10.0);
+    aTab[6] = (int)(licz/100.0); aTab[7] = AO[7];
+
+    bTab[0] = (int)aK1; bTab[1] = (int)aK2; bTab[2] = (int)L1; bTab[3] = (int)L2;
+    bTab[4] = BI[0].d&0x04; bTab[5] = BI[0].d&0x02; bTab[6] = BI[0].d&0x01; bTab[7] = BI[0].d&0x80;
+    bTab[8] = Z3; bTab[9] = G1; bTab[10] = M; bTab[11] = 11;
+    bTab[12] = 12; bTab[13] = 13; bTab[14] = 14; bTab[15] = 15;
+}
+#endif
+\end{lstlisting}
+
 \section{Przedstawienie działania programu}
+Pod podanym linkiem znajduje się \href{https://youtu.be/baM-8L8GW4s} {nagranie wideo prezentujące działanie programu}.\\
 Poniżej przedstawiono przykładowe zrzuty ekranu obrazujące działanie programu w różnych trybach i stanach.
 \subsection{Tryb automatyczny}
 \begin{figure}[H]
